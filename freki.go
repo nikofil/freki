@@ -21,6 +21,7 @@ import (
 	"github.com/google/gopacket/pcap"
 	"github.com/kung-foo/freki/netfilter"
 	"github.com/pkg/errors"
+	"github.com/mushorg/go-dpi"
 )
 
 const table = "raw"
@@ -151,6 +152,7 @@ func (p *Processor) resetIPTables() (err error) {
 }
 
 func (p *Processor) Init() (err error) {
+	godpi.Initialize()
 	for _, rule := range p.rules {
 		if rule.ruleType == ProxyTCP {
 			if rule.targetURL.Scheme == "docker" {
@@ -235,6 +237,7 @@ func (p *Processor) PacketsProcessed() uint64 {
 
 func (p *Processor) Shutdown() (err error) {
 	p.cleanupOnce.Do(func() {
+		godpi.Destroy()
 		close(p.shutdown)
 		// TODO: how to drain?
 		err = p.cleanup()
@@ -348,6 +351,11 @@ func (p *Processor) mangle(
 			// not tracking
 			goto accept
 		}
+		logger.Debugf("[freki   ] RECEIVED PKT %v :%v", string(body.Payload()))
+		flow := md.Flow
+		flow.AddPacket(&packet)
+		proto, source := godpi.ClassifyFlow(flow)
+		logger.Debugf("[godpi   ]Predicted %v from source %v %v:%v -> %v:%v", proto, source, ip.SrcIP, tcp.SrcPort, ip.DstIP, tcp.DstPort)
 
 		switch md.Rule.ruleType {
 		case Rewrite, LogTCP, LogHTTP, ProxyTCP, UserConnHandler:
@@ -368,6 +376,11 @@ func (p *Processor) mangle(
 			// not tracking
 			goto accept
 		}
+		logger.Debugf("[freki   ] RECEIVED PKT %v :%v", string(body.Payload()))
+		flow := md.Flow
+		flow.AddPacket(&packet)
+		proto, source := godpi.ClassifyFlow(flow)
+		logger.Debugf("[godpi   ]Predicted %v from source %v %v:%v -> %v:%v", proto, source, ip.SrcIP, tcp.SrcPort, ip.DstIP, tcp.DstPort)
 
 		var s Server
 		var ok bool

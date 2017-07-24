@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"github.com/mushorg/go-dpi/types"
 )
 
 type ckey [2]uint64
@@ -40,6 +41,8 @@ type Metadata struct {
 	Added      time.Time
 	Rule       *Rule
 	TargetPort layers.TCPPort
+	Flow       *types.Flow
+	Uid        int
 	//TargetIP   net.IP
 }
 
@@ -69,6 +72,7 @@ func (t *connTable) Register(ck ckey, matchedRule *Rule, srcIP, srcPort string, 
 			Added:      time.Now(),
 			Rule:       matchedRule,
 			TargetPort: targetPort,
+			Flow:       types.NewFlow(),
 			//TargetIP:   targetIP,
 		}
 	}
