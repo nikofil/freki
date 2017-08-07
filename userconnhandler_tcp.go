@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"time"
 	"github.com/mushorg/go-dpi/types"
+	"strconv"
 )
 
 type UserConnServer struct {
@@ -70,23 +71,29 @@ func (h *UserConnServer) Start(processor *Processor) error {
 		}
 		logger.Debugf("[godpi   ] Target %v Detected %v", md.Rule.Target, md.Flow.DetectedProtocol)
 		godpiMap := map[string]string {"SSH": "proxy_ssh", "HTTP": "default"}
-		logger.Infof("[godpi   ] DETECTED %v by %v!", md.Flow.DetectedProtocol, md.Flow.ClassificationSource)
+		portsMap := map[string]string {"SSH": "22", "HTTP": "80"}
+		logger.Infof("[godpi   ] DETECTED %v by %v on port %v!", md.Flow.DetectedProtocol, md.Flow.ClassificationSource, md.TargetPort)
 		nextProto, _ := godpiMap[string(md.Flow.DetectedProtocol)]
 		logger.Debug(h.processor.connHandlers)
 		if hfunc, ok := h.processor.connHandlers[nextProto]; ok {
-			go func() {
-				defer func() {
-					if r := recover(); r != nil {
-						logger.Errorf("[user.tcp] panic: %+v", r)
-						logger.Errorf("[user.tcp] stacktrace:\n%v", string(debug.Stack()))
-						conn.Close()
+			if normalPort, ok := portsMap[string(md.Flow.DetectedProtocol)]; ok && normalPort == strconv.Itoa(int(md.TargetPort)) {
+				go func() {
+					defer func() {
+						if r := recover(); r != nil {
+							logger.Errorf("[user.tcp] panic: %+v", r)
+							logger.Errorf("[user.tcp] stacktrace:\n%v", string(debug.Stack()))
+							conn.Close()
+						}
+					}()
+					err := hfunc(conn, md)
+					if err != nil {
+						logger.Error(errors.Wrap(err, h.Type()))
 					}
 				}()
-				err := hfunc(conn, md)
-				if err != nil {
-					logger.Error(errors.Wrap(err, h.Type()))
-				}
-			}()
+			} else {
+				logger.Errorf("Connection to non-standard port! %v in port %v", md.Flow.DetectedProtocol, md.TargetPort)
+				conn.Close()
+			}
 		} else {
 			logger.Errorf("[user.tcp] %v", fmt.Errorf("no handler found for %s", md.Rule.Target))
 			conn.Close()
