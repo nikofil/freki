@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"time"
+	"github.com/mushorg/go-dpi/types"
 )
 
 type UserConnServer struct {
@@ -60,9 +61,16 @@ func (h *UserConnServer) Start(processor *Processor) error {
 		// once freki starts to shutdown, handlers are not notified.
 		// maybe use a Context?
 		time.Sleep(3 * time.Second)
+		if md.Flow.DetectedProtocol == types.Unknown {
+			logger.Debugf("[godpi   ] We have %d packets", len(md.Flow.Packets))
+			conn.Write([]byte("220 HELLO WORLDDD\r\n"))
+			time.Sleep(6 * time.Second)
+			logger.Debugf("[godpi   ] We have %d packets", len(md.Flow.Packets))
+			logger.Debugf("[godpi   ] new detection %v", md.Flow.DetectedProtocol)
+		}
 		logger.Debugf("[godpi   ] Target %v Detected %v", md.Rule.Target, md.Flow.DetectedProtocol)
 		godpiMap := map[string]string {"SSH": "proxy_ssh", "HTTP": "default"}
-		logger.Infof("[godpi   ] DETECTED %v!", md.Flow.DetectedProtocol)
+		logger.Infof("[godpi   ] DETECTED %v by %v!", md.Flow.DetectedProtocol, md.Flow.ClassificationSource)
 		nextProto, _ := godpiMap[string(md.Flow.DetectedProtocol)]
 		logger.Debug(h.processor.connHandlers)
 		if hfunc, ok := h.processor.connHandlers[nextProto]; ok {

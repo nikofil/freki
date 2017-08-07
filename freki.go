@@ -351,11 +351,11 @@ func (p *Processor) mangle(
 			// not tracking
 			goto accept
 		}
-		logger.Debugf("[freki   ] RECEIVED PKT %v :%v", string(body.Payload()))
+		logger.Debugf("[freki   ] RECEIVED PKT %v", string(body.Payload()))
 		flow := md.Flow
 		flow.AddPacket(&packet)
-		proto, source := godpi.ClassifyFlow(flow)
-		logger.Debugf("[godpi   ]Predicted %v from source %v %v:%v -> %v:%v", proto, source, ip.SrcIP, tcp.SrcPort, ip.DstIP, tcp.DstPort)
+		res := godpi.ClassifyFlow(flow)
+		logger.Debugf("[godpi   ]Predicted %v from source %v %v:%v -> %v:%v", res.Protocol, res.Source, ip.SrcIP, tcp.SrcPort, ip.DstIP, tcp.DstPort)
 
 		switch md.Rule.ruleType {
 		case Rewrite, LogTCP, LogHTTP, ProxyTCP, UserConnHandler:
@@ -376,11 +376,11 @@ func (p *Processor) mangle(
 			// not tracking
 			goto accept
 		}
-		logger.Debugf("[freki   ] RECEIVED PKT %v :%v", string(body.Payload()))
+		logger.Debugf("[freki   ] RECEIVED PKT %v", string(body.Payload()))
 		flow := md.Flow
 		flow.AddPacket(&packet)
-		proto, source := godpi.ClassifyFlow(flow)
-		logger.Debugf("[godpi   ]Predicted %v from source %v %v:%v -> %v:%v", proto, source, ip.SrcIP, tcp.SrcPort, ip.DstIP, tcp.DstPort)
+		res := godpi.ClassifyFlow(flow)
+		logger.Debugf("[godpi   ]Predicted %v from source %v %v:%v -> %v:%v", res.Protocol, res.Source, ip.SrcIP, tcp.SrcPort, ip.DstIP, tcp.DstPort)
 
 		var s Server
 		var ok bool
